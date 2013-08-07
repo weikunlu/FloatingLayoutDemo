@@ -1,6 +1,8 @@
 package com.weikun.testframelayout;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.app.Activity;
 import android.graphics.Point;
 import android.util.Log;
@@ -22,15 +24,43 @@ public class MainActivity extends Activity {
 	Display mDisplay;
 	Point mSize;
 	
+	// touch fields
+	int X;
+	int Y;
+	View startView;
+	View selectedView;
+	
+	// constants for Message.what used by GestureHandler below
+	private static final int LONG_PRESS = 1;
+	private static final int TAP = 2;
+	
+	private static final int LONGPRESS_TIMEOUT = 500;
+	private static final int TAP_TIMEOUT = 180;
+	private static final int DOUBLE_TAP_TIMEOUT = 300;
+	
+	private boolean mInLongPress;
+	private boolean mIsDoubleTapping;
+	
+	Handler mGestureHandler = new Handler() {
+		@Override
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+			case LONG_PRESS:
+				dispatchLongPress();
+				break;
+			case TAP:
+				//do nothing because TAG flag just a signal to identify double tap
+				break;
+			}
+		}
+	};
+	
 	View.OnTouchListener mTouchListener = new View.OnTouchListener() {
-		
-		View startView;
-		View selectedView;
 		
 		@Override
 		public boolean onTouch(View v, MotionEvent event) {
-			final int X = (int) event.getRawX();
-			final int Y = (int) event.getRawY();
+			X = (int) event.getRawX();
+			Y = (int) event.getRawY();
 			
 			//Log.i(TAG, "view id "+ v.getId() + " " + String.format("%d,%d", X, Y));
 			
@@ -39,33 +69,52 @@ public class MainActivity extends Activity {
 					
 					//which one was selected
 					startView = v;
-					v.getId();
 					
-					//TODO change code here for your requirement
-					ImageView selectImageView = (ImageView)v.getTag();
-					ImageView imageView = (ImageView)layout0.findViewById(R.id.iv0);
-					imageView.setImageDrawable(selectImageView.getDrawable());
+					boolean hadTapMessage = mGestureHandler.hasMessages(TAP);
+					if(hadTapMessage){
+						//double tap
+						mGestureHandler.removeMessages(TAP);
+						
+						mIsDoubleTapping = true;
+						
+					}else{
+						mGestureHandler.sendEmptyMessageAtTime(TAP, event.getDownTime() + DOUBLE_TAP_TIMEOUT);
+					}
 					
-					RelativeLayout.LayoutParams cacheParams = (RelativeLayout.LayoutParams) layout0.getLayoutParams();
-					cacheParams.leftMargin = X - cacheParams.width/2;
-					cacheParams.topMargin = Y - cacheParams.height/2;
-					layout0.setLayoutParams(cacheParams);
-					layout0.setVisibility(View.VISIBLE);
+					mGestureHandler.removeMessages(LONG_PRESS);
+					mGestureHandler.sendEmptyMessageAtTime(LONG_PRESS, event.getDownTime() + TAP_TIMEOUT + LONGPRESS_TIMEOUT);
 					
 					break;
 				
 				case MotionEvent.ACTION_UP:
-					layout0.setVisibility(View.GONE);
 					
-					swapLayoutContent();
+					if(mIsDoubleTapping){
+						//TODO double tap task here
+						Log.i(TAG, "on double tap");
+						//cat full screen?
+						
+						mIsDoubleTapping = false;
+					}if(mInLongPress){
+						layout0.setVisibility(View.GONE);
+						
+						swapLayoutContent();
+						
+						mInLongPress = false;
+					}
+					
+					mGestureHandler.removeMessages(LONG_PRESS);
 					
 					break;
 				
 				case MotionEvent.ACTION_MOVE:
-					RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) layout0.getLayoutParams();
-					layoutParams.leftMargin = X - layoutParams.width/2;
-					layoutParams.topMargin = Y - layoutParams.height/2;
-					layout0.setLayoutParams(layoutParams);
+					
+					if(mInLongPress){
+						RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) layout0.getLayoutParams();
+						layoutParams.leftMargin = X - layoutParams.width/2;
+						layoutParams.topMargin = Y - layoutParams.height/2;
+						layout0.setLayoutParams(layoutParams);
+					}
+
 					break;
 			}
 			
@@ -74,56 +123,70 @@ public class MainActivity extends Activity {
 			return true;
 		}
 
-		private void checkRegion(int x, int y) {
-			
-			int width = mSize.x/2;
-			int height = mSize.y/2;
-			
-			//update current region background
-			int loc = -1;
-			if(x <= width && y <= height){
-				loc &= 0x0;
-			}else if(x > width && y <= height){
-				loc &= 0x1;
-			}else if(x <= width && y > height){
-				loc &= 0x2;
-			}else if(x > width && y > height){
-				loc &= 0x3;
-			}
-			
-			if(loc>=0){
-				selectedView = layouts[loc];
-				for (int i = 0; i < layouts.length; i++) {
-					if(i==loc){
-						layouts[i].setBackgroundResource(R.drawable.select_effect);
-					}else{
-						layouts[i].setBackgroundResource(R.color.default_bg);
-					}
-				}
-			}
-			
-		}
-		
-		private void swapLayoutContent(){
-			if(startView.getId() != selectedView.getId()){
-				ViewGroup vg1 = (ViewGroup)startView;
-				ViewGroup vg2 = (ViewGroup)selectedView;
-				
-				if(vg1.getChildCount()>0 && vg2.getChildCount()>0){
-					View tmpView;
-					View childAt1 = vg1.getChildAt(0);
-					View childAt2 = vg2.getChildAt(0);
-					tmpView = childAt1;
-					vg1.removeAllViews();
-					vg2.removeAllViews();
-					vg1.addView(childAt2);
-					vg2.addView(tmpView);
-				}
-			}
-		}
-		
 	};
 
+	private void dispatchLongPress(){
+		mInLongPress = true;
+		
+		//TODO change code here for your requirement
+		ImageView selectImageView = (ImageView)startView.getTag();
+		ImageView imageView = (ImageView)layout0.findViewById(R.id.iv0);
+		imageView.setImageDrawable(selectImageView.getDrawable());
+		
+		RelativeLayout.LayoutParams cacheParams = (RelativeLayout.LayoutParams) layout0.getLayoutParams();
+		cacheParams.leftMargin = X - cacheParams.width/2;
+		cacheParams.topMargin = Y - cacheParams.height/2;
+		layout0.setLayoutParams(cacheParams);
+		layout0.setVisibility(View.VISIBLE);
+
+	}
+	
+	private void checkRegion(int x, int y) {
+		
+		int width = mSize.x/2;
+		int height = mSize.y/2;
+		
+		//update current region background
+		int loc = 0;
+		if(x > width && y <= height){
+			loc = 1;
+		}else if(x <= width && y > height){
+			loc = 2;
+		}else if(x > width && y > height){
+			loc = 3;
+		}
+		
+		selectedView = layouts[loc];
+		for (int i = 0; i < layouts.length; i++) {
+			if(i==loc){
+				layouts[i].setBackgroundResource(R.drawable.select_effect);
+			}else{
+				layouts[i].setBackgroundResource(R.color.default_bg);
+			}
+		}
+		
+	}
+	
+	private void swapLayoutContent(){
+		if(startView.getId() != selectedView.getId()){
+			ViewGroup vg1 = (ViewGroup)startView;
+			ViewGroup vg2 = (ViewGroup)selectedView;
+			
+			if(vg1.getChildCount()>0 && vg2.getChildCount()>0){
+				View tmpView;
+				View childAt1 = vg1.getChildAt(0);
+				View childAt2 = vg2.getChildAt(0);
+				tmpView = childAt1;
+				vg1.removeAllViews();
+				vg2.removeAllViews();
+				vg1.addView(childAt2);
+				vg2.addView(tmpView);
+				vg1.setTag(childAt2);
+				vg2.setTag(childAt1);
+			}
+		}
+	}
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
