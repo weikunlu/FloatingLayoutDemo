@@ -243,9 +243,9 @@ public class MainActivity extends Activity {
 		mInLongPress = true;
 
 		// TODO change code here for your requirement
-		ImageView selectImageView = (ImageView) mLayoutMap.get(startViewId).getTag();
+		RelativeLayout selectImageView = (RelativeLayout) mLayoutMap.get(startViewId).getTag();
 		ImageView imageView = (ImageView) layout0.findViewById(R.id.iv0);
-		imageView.setImageDrawable(selectImageView.getDrawable());
+		imageView.setImageDrawable(selectImageView.getBackground());
 
 		RelativeLayout.LayoutParams cacheParams = (RelativeLayout.LayoutParams) layout0.getLayoutParams();
 		cacheParams.leftMargin = X - cacheParams.width / 2;
@@ -285,22 +285,16 @@ public class MainActivity extends Activity {
 		Log.i(TAG, "swap startViewId: " + startViewId + " selectedViewId: "
 				+ selectedViewId);
 		if (startViewId != selectedViewId) {
-			ViewGroup vg1 = (ViewGroup) mLayoutMap.get(startViewId);
-			ViewGroup vg2 = (ViewGroup) mLayoutMap.get(selectedViewId);
+			RelativeLayout vg1 = (RelativeLayout) mLayoutMap.get(startViewId);
+			RelativeLayout vg2 = (RelativeLayout) mLayoutMap.get(selectedViewId);
 
 			RelativeLayout.LayoutParams lp1 = (RelativeLayout.LayoutParams) vg1
 					.getLayoutParams();
 			RelativeLayout.LayoutParams lp2 = (RelativeLayout.LayoutParams) vg2
 					.getLayoutParams();
 
-			int tmptop = lp1.topMargin;
-			int tmpleft = lp1.leftMargin;
-			lp1.topMargin = lp2.topMargin;
-			lp1.leftMargin = lp2.leftMargin;
-			lp2.topMargin = tmptop;
-			lp2.leftMargin = tmpleft;
-			vg1.setLayoutParams(lp1);
-			vg2.setLayoutParams(lp2);
+			vg1.setLayoutParams(lp2);
+			vg2.setLayoutParams(lp1);
 
 			int a = 0, b = 0;
 			for (int i = 0; i < mLayoutPosAry.length; i++) {
@@ -330,7 +324,7 @@ public class MainActivity extends Activity {
 		final int divideHeight = mSize.y / 2;
 
 		// TODO change your object id here
-		final int[] objectIds = { R.id.iv1, R.id.iv2, R.id.iv3, R.id.iv4 };
+		final int[] objectIds = mLayoutPosAry;//{ R.id.iv1, R.id.iv2, R.id.iv3, R.id.iv4 };
 
 		RelativeLayout.LayoutParams params;
 
