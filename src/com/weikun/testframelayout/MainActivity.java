@@ -11,7 +11,6 @@ import android.view.Display;
 import android.view.Menu;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
@@ -24,8 +23,8 @@ public class MainActivity extends Activity {
 	private SparseArray<RelativeLayout> mLayoutMap = new SparseArray<RelativeLayout>();
 	private RelativeLayout layout0;
 
-	Display mDisplay;
-	Point mSize;
+	private Display mDisplay;
+	private Point mSize;
 
 	// touch fields
 	private int X;
@@ -40,6 +39,7 @@ public class MainActivity extends Activity {
 	private static final int LONG_PRESS = 1;
 	private static final int TAP = 2;
 
+	// constants for Handler used by event time out
 	private static final int LONGPRESS_TIMEOUT = 500;
 	private static final int TAP_TIMEOUT = 180;
 	private static final int DOUBLE_TAP_TIMEOUT = 300;
@@ -153,7 +153,7 @@ public class MainActivity extends Activity {
 					Log.i(TAG, "on double tap");
 					Toast.makeText(MainActivity.this, "double tap",
 							Toast.LENGTH_SHORT).show();
-					;
+					
 					// fullScreen(selectedView); ?
 
 					mIsDoubleTapping = false;
@@ -161,7 +161,6 @@ public class MainActivity extends Activity {
 				if (mInLongPress) {
 					layout0.setVisibility(View.GONE);
 
-					// swapLayoutContent();
 					swapLayout();
 
 					mInLongPress = false;
@@ -172,8 +171,7 @@ public class MainActivity extends Activity {
 				if (mPreviousUpEvent != null) {
 					mPreviousUpEvent.recycle();
 				}
-				// Hold the event we obtained above - listeners may have changed
-				// the original.
+				// Hold the event we obtained above - listeners may have changed the original.
 				mPreviousUpEvent = currentUpEvent;
 
 				break;
@@ -243,10 +241,10 @@ public class MainActivity extends Activity {
 		mInLongPress = true;
 
 		// TODO change code here for your requirement
-		RelativeLayout selectImageView = (RelativeLayout) mLayoutMap.get(startViewId).getTag();
+		RelativeLayout selectImageView = mLayoutMap.get(startViewId);
 		ImageView imageView = (ImageView) layout0.findViewById(R.id.iv0);
-		imageView.setImageDrawable(selectImageView.getBackground());
-
+		imageView.setImageDrawable(((ImageView)selectImageView.getChildAt(0)).getDrawable());
+		
 		RelativeLayout.LayoutParams cacheParams = (RelativeLayout.LayoutParams) layout0.getLayoutParams();
 		cacheParams.leftMargin = X - cacheParams.width / 2;
 		cacheParams.topMargin = Y - cacheParams.height / 2;
@@ -285,17 +283,17 @@ public class MainActivity extends Activity {
 		Log.i(TAG, "swap startViewId: " + startViewId + " selectedViewId: "
 				+ selectedViewId);
 		if (startViewId != selectedViewId) {
+			//swap layout location
 			RelativeLayout vg1 = (RelativeLayout) mLayoutMap.get(startViewId);
 			RelativeLayout vg2 = (RelativeLayout) mLayoutMap.get(selectedViewId);
 
-			RelativeLayout.LayoutParams lp1 = (RelativeLayout.LayoutParams) vg1
-					.getLayoutParams();
-			RelativeLayout.LayoutParams lp2 = (RelativeLayout.LayoutParams) vg2
-					.getLayoutParams();
+			RelativeLayout.LayoutParams lp1 = (RelativeLayout.LayoutParams) vg1.getLayoutParams();
+			RelativeLayout.LayoutParams lp2 = (RelativeLayout.LayoutParams) vg2.getLayoutParams();
 
 			vg1.setLayoutParams(lp2);
 			vg2.setLayoutParams(lp1);
 
+			//update position array
 			int a = 0, b = 0;
 			for (int i = 0; i < mLayoutPosAry.length; i++) {
 				if (startViewId == mLayoutPosAry[i]) {
@@ -304,9 +302,9 @@ public class MainActivity extends Activity {
 					b = i;
 				}
 			}
-			int tmp = mLayoutPosAry[a];
-			mLayoutPosAry[a] = mLayoutPosAry[b];
-			mLayoutPosAry[b] = tmp;
+			mLayoutPosAry[a] ^= mLayoutPosAry[b];
+			mLayoutPosAry[b] ^= mLayoutPosAry[a];
+			mLayoutPosAry[a] ^= mLayoutPosAry[b];
 		}
 	}
 
@@ -320,20 +318,17 @@ public class MainActivity extends Activity {
 		mSize = new Point();
 		mDisplay.getSize(mSize);
 		Log.i(TAG, String.format("display width:%d  height:%d", mSize.x, mSize.y));
+		
 		final int divideWidth = mSize.x / 2;
 		final int divideHeight = mSize.y / 2;
 
-		// TODO change your object id here
-		final int[] objectIds = mLayoutPosAry;//{ R.id.iv1, R.id.iv2, R.id.iv3, R.id.iv4 };
-
 		RelativeLayout.LayoutParams params;
-
 		for (int i = 0; i < mLayoutPosAry.length; i++) {
 			RelativeLayout layout = (RelativeLayout) findViewById(mLayoutPosAry[i]);
 			layout.setOnTouchListener(mTouchListener);
 
-			// tag object for further event handling
-			layout.setTag(findViewById(objectIds[i]));
+			// tag object for further event handling if require
+			// layout.setTag(findViewById(mLayoutPosAry[i]));
 
 			// re allocate layout width and height
 			params = (RelativeLayout.LayoutParams) layout.getLayoutParams();
@@ -374,7 +369,6 @@ public class MainActivity extends Activity {
 	@Override
 	protected void onResume() {
 		super.onResume();
-
 	}
 
 	@Override
