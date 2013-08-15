@@ -47,7 +47,8 @@ public class MainActivity extends Activity {
 	private int mTouchSlopSquare = 8 * 8;
 	private int mDoubleTapTouchSlopSquare = mTouchSlopSquare;
 	private int mDoubleTapSlopSquare = 50 * 50;
-
+	private int mLongPressSlopSquare = 10 * 10;
+	
 	private boolean mInLongPress;
 	private boolean mIsDoubleTapping;
 	private boolean mAlwaysInTapRegion;
@@ -190,13 +191,18 @@ public class MainActivity extends Activity {
 					final int deltaX = (int) (focusX - mDownFocusX);
 					final int deltaY = (int) (focusY - mDownFocusY);
 					int distance = (deltaX * deltaX) + (deltaY * deltaY);
+					//Log.i(TAG, "cal dis: "+distance);
 					if (distance > mTouchSlopSquare) {
 						mAlwaysInTapRegion = false;
 						mGestureHandler.removeMessages(TAP);
-						mGestureHandler.removeMessages(LONG_PRESS);
 					}
+					
 					if (distance > mDoubleTapTouchSlopSquare) {
 						mAlwaysInBiggerTapRegion = false;
+					}
+					
+					if(distance > mLongPressSlopSquare){
+						mGestureHandler.removeMessages(LONG_PRESS);
 					}
 				}
 
